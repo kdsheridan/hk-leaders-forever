@@ -10,14 +10,15 @@ Honorable kills leaderboard for a list of WoW Forever characters, hosted on Verc
 ## Setup
 
 1. Copy `.env.example` to `.env.local` and fill in your Blizzard client ID **and** secret.
-2. Check the API from your terminal (Node 20+):
+2. Check the API from your terminal (Node 20.6+ works locally; Vercel is set to Node 26.x in `package.json`):
 
    ```
    npm run test:raw   # raw pvp-summary response, to confirm honorable_kills
    npm run test:api   # the ranked table
    ```
 
-3. Run the site locally with `npx vercel dev`, or deploy by importing the repo in Vercel.
+3. Run the site locally with `npm run dev` and open http://localhost:3000 (no Vercel login needed),
+   or deploy by importing the repo in Vercel.
    Add `BLIZZARD_CLIENT_ID`, `BLIZZARD_CLIENT_SECRET` and `BLIZZARD_REGION` under
    Project Settings → Environment Variables.
 

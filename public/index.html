@@ -50,6 +50,18 @@
     th { color: var(--muted); font-weight: normal; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; }
     td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
     tr:last-child td { border-bottom: 0; }
+
+    /* Sortable headers: the arrow space is always reserved so columns don't shift. */
+    .sort {
+      background: none; border: 0; padding: 0; cursor: pointer;
+      font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit;
+    }
+    .sort:hover, .sort:focus-visible { color: var(--gold); }
+    .sort::after { content: " ▼"; visibility: hidden; font-size: 0.7em; }
+    th[aria-sort="ascending"] .sort::after { content: " ▲"; visibility: visible; }
+    th[aria-sort="descending"] .sort::after { visibility: visible; }
+    th[aria-sort="ascending"], th[aria-sort="descending"] { color: var(--text); }
+
     .rank { width: 48px; color: var(--muted); }
     tr.first .rank, tr.first .hk { color: var(--gold); }
     .hk { font-size: 1.1rem; }
@@ -65,19 +77,19 @@
 <body>
   <main>
     <h1>Honorable Kills</h1>
-    <p class="sub">WoW Forever · US · updates when a character logs out</p>
+    <p class="sub">WoW Forever · US · updates when a character logs out · click a column to sort</p>
     <div class="wrap">
       <table>
         <thead>
           <tr>
             <th class="rank">#</th>
-            <th>Character</th>
-            <th class="num">Lvl</th>
-            <th class="num">iLvl</th>
-            <th class="num">HK</th>
-            <th class="num">PvP deaths</th>
-            <th class="num">HK / death</th>
-            <th class="num">PvE deaths</th>
+            <th data-key="character" aria-sort="none"><button type="button" class="sort">Character</button></th>
+            <th class="num" data-key="level" aria-sort="none"><button type="button" class="sort">Lvl</button></th>
+            <th class="num" data-key="itemLevel" aria-sort="none"><button type="button" class="sort">iLvl</button></th>
+            <th class="num" data-key="honorableKills" aria-sort="descending"><button type="button" class="sort">HK</button></th>
+            <th class="num" data-key="pvpDeaths" aria-sort="none"><button type="button" class="sort">PvP deaths</button></th>
+            <th class="num" data-key="ratio" aria-sort="none"><button type="button" class="sort">HK / death</button></th>
+            <th class="num" data-key="pveDeaths" aria-sort="none"><button type="button" class="sort">PvE deaths</button></th>
           </tr>
         </thead>
         <tbody id="rows"><tr><td colspan="8" class="note">Loading…</td></tr></tbody>
@@ -105,6 +117,77 @@
       Warrior: "#C79C6E",
     };
 
+    // --- Sorting ---------------------------------------------------------------
+    // `first` is the direction used the first time a column is clicked.
+    const SORTS = {
+      character: { value: (r) => nameOf(r).toLowerCase(), first: "asc" },
+      level: { value: (r) => r.level, first: "desc" },
+      itemLevel: { value: (r) => r.itemLevel, first: "desc" },
+      honorableKills: { value: (r) => r.honorableKills, first: "desc" },
+      pvpDeaths: { value: (r) => r.pvpDeaths, first: "desc" },
+      ratio: { value: (r) => (r.pvpDeaths > 0 ? r.honorableKills / r.pvpDeaths : null), first: "desc" },
+      pveDeaths: { value: (r) => r.pveDeaths, first: "desc" },
+    };
+
+    let rows = null;                                  // set once the data has loaded
+    let ranks = new Map();                            // HK rank per row, independent of sorting
+    let sort = { key: "honorableKills", dir: "desc" };
+    const expanded = new Set();                       // characters whose PvE breakdown is open
+
+    const nameOf = (r) => `${r.name} ${r.surname}`;
+    const isRanked = (r) => r.status === "ok" && r.honorableKills != null;
+    const byHk = (a, b) => b.honorableKills - a.honorableKills;
+    const tiebreak = (a, b) => byHk(a, b) || nameOf(a).localeCompare(nameOf(b));
+
+    // Ties share a rank (1, 1, 3). Based on HK only, so re-sorting never changes it.
+    function computeRanks(all) {
+      const ordered = all.filter(isRanked).sort(byHk);
+      const map = new Map();
+      ordered.forEach((row, i) => {
+        const prev = ordered[i - 1];
+        map.set(row, prev && prev.honorableKills === row.honorableKills ? map.get(prev) : i + 1);
+      });
+      return map;
+    }
+
+    function sortedRows() {
+      const ranked = rows.filter(isRanked);
+      const unranked = rows.filter((r) => !isRanked(r)); // always stay at the bottom
+      const { value } = SORTS[sort.key];
+      const sign = sort.dir === "asc" ? 1 : -1;
+      ranked.sort((a, b) => {
+        const av = value(a);
+        const bv = value(b);
+        if (av == null && bv == null) return tiebreak(a, b);
+        if (av == null) return 1; // missing values go last in either direction
+        if (bv == null) return -1;
+        const cmp = typeof av === "string" ? av.localeCompare(bv) : av - bv;
+        return cmp !== 0 ? sign * cmp : tiebreak(a, b);
+      });
+      return [...ranked, ...unranked];
+    }
+
+    function updateHeaders() {
+      for (const th of document.querySelectorAll("th[data-key]")) {
+        th.setAttribute(
+          "aria-sort",
+          th.dataset.key === sort.key ? (sort.dir === "asc" ? "ascending" : "descending") : "none"
+        );
+      }
+    }
+
+    for (const th of document.querySelectorAll("th[data-key]")) {
+      th.querySelector("button").addEventListener("click", () => {
+        if (!rows) return; // still loading
+        const key = th.dataset.key;
+        sort = key === sort.key
+          ? { key, dir: sort.dir === "asc" ? "desc" : "asc" }
+          : { key, dir: SORTS[key].first };
+        render();
+      });
+    }
+
+    // --- Rendering -------------------------------------------------------------
     function el(tag, className, text) {
       const node = document.createElement(tag);
       if (className) node.className = className;
@@ -116,7 +199,7 @@
       const td = el("td");
       const who = el("div", "who");
       who.append(el("span", "faction" + (row.faction ? " " + row.faction : "")));
-      who.append(document.createTextNode(`${row.name} ${row.surname}`));
+      who.append(document.createTextNode(nameOf(row)));
       td.append(who);
 
       const bits = [];
@@ -153,11 +236,15 @@
         td.textContent = row.pveDeaths.toLocaleString();
         return td;
       }
+      const key = nameOf(row).toLowerCase();
+      detail.hidden = !expanded.has(key);
       const btn = el("button", "toggle", row.pveDeaths.toLocaleString() + " ▾");
       btn.type = "button";
-      btn.setAttribute("aria-expanded", "false");
+      btn.setAttribute("aria-expanded", String(!detail.hidden));
       btn.addEventListener("click", () => {
         detail.hidden = !detail.hidden;
+        if (detail.hidden) expanded.delete(key);
+        else expanded.add(key);
         btn.setAttribute("aria-expanded", String(!detail.hidden));
       });
       td.append(btn);
@@ -179,6 +266,38 @@
       return tr;
     }
 
+    function render() {
+      const body = document.getElementById("rows");
+      body.replaceChildren();
+      for (const row of sortedRows()) {
+        const tr = el("tr");
+        const ranked = isRanked(row);
+        const rank = ranks.get(row);
+        if (ranked && rank === 1) tr.className = "first";
+        tr.append(el("td", "rank", ranked ? rank : "–"), characterCell(row));
+        let detail = null;
+        if (ranked) {
+          const hasBreakdown = row.deathBreakdown && row.deathBreakdown.length > 0;
+          detail = hasBreakdown ? breakdownRow(row) : null;
+          tr.append(
+            el("td", "num", fmt(row.level)),
+            el("td", "num", fmt(row.itemLevel)),
+            el("td", "num hk", row.honorableKills.toLocaleString()),
+            el("td", "num", fmt(row.pvpDeaths)),
+            el("td", "num", ratio(row)),
+            pveCell(row, detail)
+          );
+        } else {
+          const note = el("td", "num note", NOTES[row.status] || "");
+          note.colSpan = 6;
+          tr.append(note);
+        }
+        body.append(tr);
+        if (detail) body.append(detail);
+      }
+      updateHeaders();
+    }
+
     async function load() {
       const body = document.getElementById("rows");
       const status = document.getElementById("status");
@@ -187,34 +306,9 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Request failed");
 
-        body.replaceChildren();
-        let rank = 0;
-        for (const row of data.rows) {
-          const tr = el("tr");
-          const ranked = row.status === "ok" && row.honorableKills != null;
-          if (ranked) rank += 1;
-          if (ranked && rank === 1) tr.className = "first";
-          tr.append(el("td", "rank", ranked ? rank : "–"), characterCell(row));
-          let detail = null;
-          if (ranked) {
-            const hasBreakdown = row.deathBreakdown && row.deathBreakdown.length > 0;
-            detail = hasBreakdown ? breakdownRow(row) : null;
-            tr.append(
-              el("td", "num", fmt(row.level)),
-              el("td", "num", fmt(row.itemLevel)),
-              el("td", "num hk", row.honorableKills.toLocaleString()),
-              el("td", "num", fmt(row.pvpDeaths)),
-              el("td", "num", ratio(row)),
-              pveCell(row, detail)
-            );
-          } else {
-            const note = el("td", "num note", NOTES[row.status] || "");
-            note.colSpan = 6;
-            tr.append(note);
-          }
-          body.append(tr);
-          if (detail) body.append(detail);
-        }
+        rows = data.rows;
+        ranks = computeRanks(rows);
+        render();
         status.textContent =
           "Updated " + new Date(data.updatedAt).toLocaleString() +
           (data.stale ? " · Blizzard isn't responding right now, so this is the last good data" : "");
