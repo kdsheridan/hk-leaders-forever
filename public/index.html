@@ -97,6 +97,10 @@
     </div>
     <div id="status"></div>
   </main>
+  <script type="module">
+    import { inject } from 'https://cdn.jsdelivr.net/npm/@vercel/analytics@2/dist/index.mjs';
+    inject();
+  </script>
   <script>
     const NOTES = {
       not_found: "Not visible yet (needs level 10 and a logout)",
