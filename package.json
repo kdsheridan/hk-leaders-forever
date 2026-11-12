@@ -1,0 +1,11 @@
+{
+  "name": "hk-leaders-forever",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Honorable kills leaderboard for WoW Forever",
+  "engines": { "node": "20.x" },
+  "scripts": {
+    "test:api": "node --env-file=.env.local scripts/test.js",
+    "test:raw": "node --env-file=.env.local scripts/test.js raw"
+  }
+}

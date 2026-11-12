@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HK Leaders · WoW Forever</title>
+  <style>
+    :root {
+      --bg: #14110d;
+      --panel: #1e1a14;
+      --line: #3a3126;
+      --text: #e8dcc2;
+      --muted: #9a8c70;
+      --gold: #f0b323;
+      --alliance: #4a8fe7;
+      --horde: #d6453d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+    main { max-width: 980px; margin: 0 auto; padding: 40px 16px; }
+    .wrap { overflow-x: auto; }
+    table { min-width: 720px; }
+    tr[hidden] { display: none; }
+    .toggle {
+      background: none; border: 0; padding: 0; color: inherit; font: inherit;
+      font-variant-numeric: tabular-nums; cursor: pointer;
+      border-bottom: 1px dotted var(--muted);
+    }
+    .toggle:hover { color: var(--gold); }
+    tr.breakdown td { background: #191510; padding: 10px 14px 14px; }
+    .chips { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+    .chips li {
+      border: 1px solid var(--line); border-radius: 999px;
+      padding: 3px 10px; font-size: 0.85rem; color: var(--text);
+    }
+    h1 { margin: 0 0 4px; color: var(--gold); letter-spacing: 0.04em; }
+    .sub { margin: 0 0 24px; color: var(--muted); font-size: 0.95rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      border: 1px solid var(--line);
+    }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: normal; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr:last-child td { border-bottom: 0; }
+    .rank { width: 48px; color: var(--muted); }
+    tr.first .rank, tr.first .hk { color: var(--gold); }
+    .hk { font-size: 1.1rem; }
+    .who { font-size: 1.05rem; }
+    .who .faction { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: var(--muted); }
+    .who .faction.ALLIANCE { background: var(--alliance); }
+    .who .faction.HORDE { background: var(--horde); }
+    .detail { margin-top: 2px; color: var(--muted); font-size: 0.85rem; }
+    .note { color: var(--muted); font-size: 0.85rem; }
+    #status { margin-top: 16px; color: var(--muted); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Honorable Kills</h1>
+    <p class="sub">WoW Forever · US · updates when a character logs out</p>
+    <div class="wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="rank">#</th>
+            <th>Character</th>
+            <th class="num">Lvl</th>
+            <th class="num">iLvl</th>
+            <th class="num">HK</th>
+            <th class="num">PvP deaths</th>
+            <th class="num">HK / death</th>
+            <th class="num">PvE deaths</th>
+          </tr>
+        </thead>
+        <tbody id="rows"><tr><td colspan="8" class="note">Loading…</td></tr></tbody>
+      </table>
+    </div>
+    <div id="status"></div>
+  </main>
+  <script>
+    const NOTES = {
+      not_found: "Not visible yet (needs level 10 and a logout)",
+      error: "Couldn't load",
+    };
+
+    // Standard WoW class colors.
+    const CLASS_COLORS = {
+      "Death Knight": "#C41F3B",
+      Druid: "#FF7D0A",
+      Hunter: "#ABD473",
+      Mage: "#3FC7EB",
+      Paladin: "#F58CBA",
+      Priest: "#FFFFFF",
+      Rogue: "#FFF569",
+      Shaman: "#0070DE",
+      Warlock: "#9482C9",
+      Warrior: "#C79C6E",
+    };
+
+    function el(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text != null) node.textContent = text;
+      return node;
+    }
+
+    function characterCell(row) {
+      const td = el("td");
+      const who = el("div", "who");
+      who.append(el("span", "faction" + (row.faction ? " " + row.faction : "")));
+      who.append(document.createTextNode(`${row.name} ${row.surname}`));
+      td.append(who);
+
+      const bits = [];
+      if (row.race) bits.push(row.race);
+      const detail = el("div", "detail");
+      detail.append(document.createTextNode(bits.join(" ") + (bits.length && row.className ? " " : "")));
+      if (row.className) {
+        const cls = el("span", null, row.className);
+        cls.style.color = CLASS_COLORS[row.className] || "inherit";
+        detail.append(cls);
+      }
+      if (row.guild) detail.append(document.createTextNode(` · <${row.guild}>`));
+      if (detail.textContent) td.append(detail);
+      return td;
+    }
+
+    function ratio(row) {
+      if (!row.pvpDeaths) return "–";
+      return (row.honorableKills / row.pvpDeaths).toFixed(1);
+    }
+
+    function fmt(n) {
+      return n != null ? n.toLocaleString() : "–";
+    }
+
+    // The PvE deaths count; clicking it opens the breakdown row underneath.
+    function pveCell(row, detail) {
+      const td = el("td", "num");
+      if (row.pveDeaths == null) {
+        td.textContent = "–";
+        return td;
+      }
+      if (!detail) {
+        td.textContent = row.pveDeaths.toLocaleString();
+        return td;
+      }
+      const btn = el("button", "toggle", row.pveDeaths.toLocaleString() + " ▾");
+      btn.type = "button";
+      btn.setAttribute("aria-expanded", "false");
+      btn.addEventListener("click", () => {
+        detail.hidden = !detail.hidden;
+        btn.setAttribute("aria-expanded", String(!detail.hidden));
+      });
+      td.append(btn);
+      return td;
+    }
+
+    function breakdownRow(row) {
+      const tr = el("tr", "breakdown");
+      tr.hidden = true;
+      const td = el("td");
+      td.colSpan = 8;
+      td.append(el("div", "note", "PvE death counters (some overlap, e.g. dungeon deaths are also counted in wider totals)"));
+      const list = el("ul", "chips");
+      for (const d of row.deathBreakdown) {
+        list.append(el("li", null, `${d.name}: ${d.quantity.toLocaleString()}`));
+      }
+      td.append(list);
+      tr.append(td);
+      return tr;
+    }
+
+    async function load() {
+      const body = document.getElementById("rows");
+      const status = document.getElementById("status");
+      try {
+        const res = await fetch("/api/leaderboard");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Request failed");
+
+        body.replaceChildren();
+        let rank = 0;
+        for (const row of data.rows) {
+          const tr = el("tr");
+          const ranked = row.status === "ok" && row.honorableKills != null;
+          if (ranked) rank += 1;
+          if (ranked && rank === 1) tr.className = "first";
+          tr.append(el("td", "rank", ranked ? rank : "–"), characterCell(row));
+          let detail = null;
+          if (ranked) {
+            const hasBreakdown = row.deathBreakdown && row.deathBreakdown.length > 0;
+            detail = hasBreakdown ? breakdownRow(row) : null;
+            tr.append(
+              el("td", "num", fmt(row.level)),
+              el("td", "num", fmt(row.itemLevel)),
+              el("td", "num hk", row.honorableKills.toLocaleString()),
+              el("td", "num", fmt(row.pvpDeaths)),
+              el("td", "num", ratio(row)),
+              pveCell(row, detail)
+            );
+          } else {
+            const note = el("td", "num note", NOTES[row.status] || "");
+            note.colSpan = 6;
+            tr.append(note);
+          }
+          body.append(tr);
+          if (detail) body.append(detail);
+        }
+        status.textContent =
+          "Updated " + new Date(data.updatedAt).toLocaleString() +
+          (data.stale ? " · Blizzard isn't responding right now, so this is the last good data" : "");
+      } catch (err) {
+        body.replaceChildren();
+        const tr = el("tr");
+        const td = el("td", "note", "Couldn't load the leaderboard: " + err.message);
+        td.colSpan = 8;
+        tr.append(td);
+        body.append(tr);
+      }
+    }
+    load();
+  </script>
+</body>
+</html>
