@@ -1,20 +1,40 @@
-// Tiny local server for testing without Vercel: serves public/ and runs the
-// same api/leaderboard.js handler. Start it with:  npm run dev
+// Tiny local server for testing without Vercel: serves public/ and runs the same
+// api/ handlers. Start it with:  npm run dev
 // then open http://localhost:3000
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
-const handler = require("../api/leaderboard");
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, "..", "public");
+const ROUTES = {
+  "/api/leaderboard": require("../api/leaderboard"),
+  "/api/characters": require("../api/characters"),
+  "/api/changelog": require("../api/changelog"),
+};
+
+function readJsonBody(req) {
+  return new Promise((resolve) => {
+    let raw = "";
+    req.on("data", (chunk) => (raw += chunk));
+    req.on("end", () => {
+      try {
+        resolve(raw ? JSON.parse(raw) : {});
+      } catch {
+        resolve(raw); // handler reports invalid JSON
+      }
+    });
+  });
+}
 
 http
   .createServer(async (req, res) => {
     const { pathname } = new URL(req.url, "http://localhost");
 
-    if (pathname === "/api/leaderboard") {
-      // Vercel adds these helpers to the response; mimic them here.
+    const handler = ROUTES[pathname];
+    if (handler) {
+      // Vercel adds these helpers to req/res; mimic them here.
+      req.body = await readJsonBody(req);
       res.status = (code) => {
         res.statusCode = code;
         return res;

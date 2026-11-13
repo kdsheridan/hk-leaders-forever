@@ -1,10 +1,12 @@
 // Quick local check, no Vercel needed:
 //   node --env-file=.env.local scripts/test.js         -> leaderboard table
 //   node --env-file=.env.local scripts/test.js raw     -> raw pvp-summary JSON per character
-const characters = require("../characters.json");
 const { fetchPvpSummary, getLeaderboard } = require("../lib/blizzard");
+const { getAllCharacters } = require("../lib/store");
 
 async function main() {
+  // characters.json plus anyone added through the website (when Redis is configured).
+  const characters = await getAllCharacters();
   if (process.argv[2] === "raw") {
     for (const c of characters) {
       const { httpStatus, body } = await fetchPvpSummary(c.name, c.surname);

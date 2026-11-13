@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "node --env-file=.env.local scripts/serve.js",
+    "probe": "node --env-file=.env.local scripts/probe.js",
     "test:api": "node --env-file=.env.local scripts/test.js",
     "test:raw": "node --env-file=.env.local scripts/test.js raw"
   },
