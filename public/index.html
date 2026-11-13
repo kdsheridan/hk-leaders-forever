@@ -14,6 +14,9 @@
       --gold: #f0b323;
       --alliance: #4a8fe7;
       --horde: #d6453d;
+      --c-character: #b79cf0;
+      --c-pvp: #ef8a52;
+      --c-pve: #7cc97f;
     }
     * { box-sizing: border-box; }
     body {
@@ -23,25 +26,24 @@
       font-family: Georgia, "Times New Roman", serif;
     }
     main { max-width: 980px; margin: 0 auto; padding: 40px 16px; }
-    .wrap { overflow-x: auto; }
-    table { min-width: 720px; }
-    tr[hidden] { display: none; }
-    .toggle {
-      background: none; border: 0; padding: 0; color: inherit; font: inherit;
-      font-variant-numeric: tabular-nums; cursor: pointer;
-      border-bottom: 1px dotted var(--muted);
-    }
-    .toggle:hover { color: var(--gold); }
-    tr.breakdown td { background: #191510; padding: 10px 14px 14px; }
-    .chips { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-    .chips li {
-      border: 1px solid var(--line); border-radius: 999px;
-      padding: 3px 10px; font-size: 0.85rem; color: var(--text);
-    }
     h1 { margin: 0 0 4px; color: var(--gold); letter-spacing: 0.04em; }
-    .sub { margin: 0 0 24px; color: var(--muted); font-size: 0.95rem; }
+    .sub { margin: 0 0 20px; color: var(--muted); font-size: 0.95rem; }
+    button { font: inherit; color: inherit; }
+    [hidden] { display: none !important; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+    .tab {
+      background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
+      padding: 8px 14px; color: var(--muted); cursor: pointer; letter-spacing: 0.04em;
+    }
+    .tab:hover, .tab:focus-visible { color: var(--text); }
+    .tab[aria-selected="true"] { color: var(--gold); border-bottom-color: var(--gold); }
+
+    /* Leaderboard table */
+    .wrap { overflow-x: auto; }
     table {
-      width: 100%;
+      width: 100%; min-width: 720px;
       border-collapse: collapse;
       background: var(--panel);
       border: 1px solid var(--line);
@@ -50,8 +52,6 @@
     th { color: var(--muted); font-weight: normal; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; }
     td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
     tr:last-child td { border-bottom: 0; }
-
-    /* Sortable headers: the arrow space is always reserved so columns don't shift. */
     .sort {
       background: none; border: 0; padding: 0; cursor: pointer;
       font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit;
@@ -61,7 +61,6 @@
     th[aria-sort="ascending"] .sort::after { content: " ▲"; visibility: visible; }
     th[aria-sort="descending"] .sort::after { visibility: visible; }
     th[aria-sort="ascending"], th[aria-sort="descending"] { color: var(--text); }
-
     .rank { width: 48px; color: var(--muted); }
     tr.first .rank, tr.first .hk { color: var(--gold); }
     .hk { font-size: 1.1rem; }
@@ -71,37 +70,172 @@
     .who .faction.HORDE { background: var(--horde); }
     .detail { margin-top: 2px; color: var(--muted); font-size: 0.85rem; }
     .note { color: var(--muted); font-size: 0.85rem; }
+    .toggle {
+      background: none; border: 0; padding: 0; font-variant-numeric: tabular-nums; cursor: pointer;
+      border-bottom: 1px dotted var(--muted);
+    }
+    .toggle:hover { color: var(--gold); }
+    tr.breakdown td { background: #191510; padding: 10px 14px 14px; }
+    .chips { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+    .chips li {
+      border: 1px solid var(--line); border-radius: 999px;
+      padding: 3px 10px; font-size: 0.85rem;
+    }
     #status { margin-top: 16px; color: var(--muted); font-size: 0.85rem; }
+
+    /* Add a character */
+    #add { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); }
+    #add h2 { margin: 0 0 4px; font-size: 1.05rem; color: var(--gold); letter-spacing: 0.04em; font-weight: normal; }
+    #add form { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-top: 10px; }
+    #add label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    #add input {
+      background: var(--panel); border: 1px solid var(--line); color: var(--text);
+      padding: 8px 10px; font: inherit; font-size: 1rem; min-width: 150px; text-transform: none; letter-spacing: normal;
+    }
+    #add input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+    .primary {
+      background: var(--gold); color: #1a1409; border: 0; padding: 9px 18px; cursor: pointer; font-weight: bold;
+    }
+    .primary:disabled { opacity: 0.6; cursor: wait; }
+    #add-msg { min-height: 1.3em; margin: 10px 0 0; }
+    #add-msg.error { color: var(--horde); }
+    #add-msg.ok { color: var(--c-pve); }
+
+    /* Toolbar and guilds */
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; margin-bottom: 10px; }
+    .toolbar p { margin: 0; }
+    .toolbar select {
+      background: var(--panel); color: var(--text); border: 1px solid var(--line);
+      padding: 4px 8px; font: inherit; font-size: 0.9rem; max-width: 100%;
+    }
+    tr.members td { background: #191510; padding: 10px 14px 14px; }
+    .member-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+    .member-list li { display: flex; flex-wrap: wrap; gap: 2px 14px; align-items: baseline; font-size: 0.9rem; }
+    .member-list .stat { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+    /* Changelog */
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .filter {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+      padding: 6px 14px; cursor: pointer; color: var(--muted);
+    }
+    .filter:hover, .filter:focus-visible { color: var(--text); }
+    .filter[aria-pressed="true"] { color: var(--text); border-color: var(--cat, var(--gold)); }
+    .filter[aria-pressed="true"]::before { content: "✓ "; color: var(--cat, var(--gold)); }
+    .filter[data-cat="character"] { --cat: var(--c-character); }
+    .filter[data-cat="pvp"] { --cat: var(--c-pvp); }
+    .filter[data-cat="pve"] { --cat: var(--c-pve); }
+    .legend { margin: 0 0 18px; }
+    .day { margin: 22px 0 6px; font-size: 0.8rem; font-weight: normal; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .log { list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--line); }
+    .log li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+    .log li:last-child { border-bottom: 0; }
+    .time { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; min-width: 4.5em; }
+    .pill {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 2px 8px;
+      border: 1px solid var(--cat, var(--line)); color: var(--cat, var(--muted)); border-radius: 999px;
+    }
+    .pill.character { --cat: var(--c-character); }
+    .pill.pvp { --cat: var(--c-pvp); }
+    .pill.pve { --cat: var(--c-pve); }
+    .log .name { font-weight: bold; }
+    .log .what { color: var(--text); }
+    #log-status { margin-top: 12px; }
   </style>
 </head>
 <body>
   <main>
     <h1>Honorable Kills</h1>
-    <p class="sub">WoW Forever · US · updates when a character logs out · click a column to sort</p>
-    <div class="wrap">
-      <table>
-        <thead>
-          <tr>
-            <th class="rank">#</th>
-            <th data-key="character" aria-sort="none"><button type="button" class="sort">Character</button></th>
-            <th class="num" data-key="level" aria-sort="none"><button type="button" class="sort">Lvl</button></th>
-            <th class="num" data-key="itemLevel" aria-sort="none"><button type="button" class="sort">iLvl</button></th>
-            <th class="num" data-key="honorableKills" aria-sort="descending"><button type="button" class="sort">HK</button></th>
-            <th class="num" data-key="pvpDeaths" aria-sort="none"><button type="button" class="sort">PvP deaths</button></th>
-            <th class="num" data-key="ratio" aria-sort="none"><button type="button" class="sort">HK / death</button></th>
-            <th class="num" data-key="pveDeaths" aria-sort="none"><button type="button" class="sort">PvE deaths</button></th>
-          </tr>
-        </thead>
-        <tbody id="rows"><tr><td colspan="8" class="note">Loading…</td></tr></tbody>
-      </table>
+    <p class="sub">WoW Forever · US · updates when a character logs out</p>
+
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab" role="tab" id="tab-board" data-tab="board" aria-controls="panel-board" aria-selected="true">Leaderboard</button>
+      <button type="button" class="tab" role="tab" id="tab-guilds" data-tab="guilds" aria-controls="panel-guilds" aria-selected="false">Guilds</button>
+      <button type="button" class="tab" role="tab" id="tab-log" data-tab="log" aria-controls="panel-log" aria-selected="false" hidden>Changelog</button>
     </div>
-    <div id="status"></div>
+
+    <section id="panel-board" role="tabpanel" aria-labelledby="tab-board">
+      <div class="toolbar">
+        <p class="note">Click a column to sort.</p>
+        <label id="kb-picker" class="note" hidden>Killing blows column: <select id="kb-stat"></select></label>
+      </div>
+      <div class="wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="rank">#</th>
+              <th data-key="character" aria-sort="none"><button type="button" class="sort">Character</button></th>
+              <th class="num" data-key="level" aria-sort="none"><button type="button" class="sort">Lvl</button></th>
+              <th class="num" data-key="itemLevel" aria-sort="none"><button type="button" class="sort">iLvl</button></th>
+              <th class="num" data-key="honorableKills" aria-sort="descending"><button type="button" class="sort">HK</button></th>
+              <th class="num" data-key="pvpDeaths" aria-sort="none"><button type="button" class="sort">PvP deaths</button></th>
+              <th class="num" data-key="ratio" aria-sort="none"><button type="button" class="sort">HK / death</button></th>
+              <th class="num" data-key="killingBlows" aria-sort="none"><button type="button" class="sort">Killing blows</button></th>
+              <th class="num" data-key="pveDeaths" aria-sort="none"><button type="button" class="sort">PvE deaths</button></th>
+            </tr>
+          </thead>
+          <tbody id="rows"><tr><td colspan="9" class="note">Loading…</td></tr></tbody>
+        </table>
+      </div>
+      <div id="status"></div>
+
+      <section id="add" hidden>
+        <h2>Add a character</h2>
+        <div class="note">Needs the passcode. Blizzard has to know the character, so check the spelling.</div>
+        <form id="add-form" autocomplete="off">
+          <label>First name <input name="name" required maxlength="24"></label>
+          <label>Surname <input name="surname" required maxlength="24"></label>
+          <label>Passcode <input name="passcode" type="password" required></label>
+          <button type="submit" class="primary">Add</button>
+        </form>
+        <p id="add-msg" class="note" role="status"></p>
+      </section>
+    </section>
+
+    <section id="panel-guilds" role="tabpanel" aria-labelledby="tab-guilds" hidden>
+      <p class="note" style="margin-top:0">Stats for the characters on this leaderboard, grouped by guild. Click a column to sort, or a member count to see who's in the guild.</p>
+      <div class="wrap">
+        <table>
+          <thead>
+            <tr>
+              <th data-gkey="guild" aria-sort="none"><button type="button" class="sort">Guild</button></th>
+              <th class="num" data-gkey="members" aria-sort="none"><button type="button" class="sort">Members</button></th>
+              <th class="num" data-gkey="totalHk" aria-sort="descending"><button type="button" class="sort">Total HK</button></th>
+              <th class="num" data-gkey="avgHk" aria-sort="none"><button type="button" class="sort">Avg HK</button></th>
+              <th class="num" data-gkey="pvpDeaths" aria-sort="none"><button type="button" class="sort">PvP deaths</button></th>
+              <th class="num" data-gkey="ratio" aria-sort="none"><button type="button" class="sort">HK / death</button></th>
+              <th class="num" data-gkey="killingBlows" aria-sort="none"><button type="button" class="sort">Killing blows</button></th>
+              <th class="num" data-gkey="pveDeaths" aria-sort="none"><button type="button" class="sort">PvE deaths</button></th>
+              <th class="num" data-gkey="avgLevel" aria-sort="none"><button type="button" class="sort">Avg lvl</button></th>
+              <th class="num" data-gkey="avgItemLevel" aria-sort="none"><button type="button" class="sort">Avg iLvl</button></th>
+            </tr>
+          </thead>
+          <tbody id="guild-rows"><tr><td colspan="10" class="note">Loading…</td></tr></tbody>
+        </table>
+      </div>
+      <p id="guild-status" class="note" role="status"></p>
+      <p class="note">Only characters on the leaderboard that have data are counted. Characters without a guild are grouped under "No guild".</p>
+    </section>
+
+    <section id="panel-log" role="tabpanel" aria-labelledby="tab-log" hidden>
+      <div class="filters" role="group" aria-label="Show these kinds of changes">
+        <button type="button" class="filter" data-cat="character" aria-pressed="true">Character</button>
+        <button type="button" class="filter" data-cat="pvp" aria-pressed="true">PvP</button>
+        <button type="button" class="filter" data-cat="pve" aria-pressed="true">PvE</button>
+      </div>
+      <p class="note legend">Character: level, item level, guild. PvP: honorable kills, PvP deaths. PvE: PvE deaths and each death counter.</p>
+      <div id="log-list"></div>
+      <p id="log-status" class="note" role="status"></p>
+      <p class="note">Times show when this site noticed a change, which can be a few minutes after a character logs out. If nobody visits for a while, several changes show up together as one.</p>
+    </section>
   </main>
   <script type="module">
     import { inject } from 'https://cdn.jsdelivr.net/npm/@vercel/analytics@2/dist/index.mjs';
     inject();
   </script>
   <script>
+    const COLS = 9; // columns in the leaderboard table
+
     const NOTES = {
       not_found: "Not visible yet (needs level 10 and a logout)",
       error: "Couldn't load",
@@ -121,6 +255,15 @@
       Warrior: "#C79C6E",
     };
 
+    const $ = (id) => document.getElementById(id);
+
+    function el(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text != null) node.textContent = text;
+      return node;
+    }
+
     // --- Sorting ---------------------------------------------------------------
     // `first` is the direction used the first time a column is clicked.
     const SORTS = {
@@ -130,12 +273,14 @@
       honorableKills: { value: (r) => r.honorableKills, first: "desc" },
       pvpDeaths: { value: (r) => r.pvpDeaths, first: "desc" },
       ratio: { value: (r) => (r.pvpDeaths > 0 ? r.honorableKills / r.pvpDeaths : null), first: "desc" },
+      killingBlows: { value: (r) => kbValue(r), first: "desc" },
       pveDeaths: { value: (r) => r.pveDeaths, first: "desc" },
     };
 
     let rows = null;                                  // set once the data has loaded
     let ranks = new Map();                            // HK rank per row, independent of sorting
     let sort = { key: "honorableKills", dir: "desc" };
+    let kbStat = "total";                             // which killing blow counter the column shows and sorts by
     const expanded = new Set();                       // characters whose PvE breakdown is open
 
     const nameOf = (r) => `${r.name} ${r.surname}`;
@@ -178,6 +323,9 @@
           th.dataset.key === sort.key ? (sort.dir === "asc" ? "ascending" : "descending") : "none"
         );
       }
+      // The header names whichever killing blow counter the column is showing.
+      document.querySelector('th[data-key="killingBlows"] button').textContent =
+        kbStat === "total" ? "Killing blows" : kbStat;
     }
 
     for (const th of document.querySelectorAll("th[data-key]")) {
@@ -191,14 +339,7 @@
       });
     }
 
-    // --- Rendering -------------------------------------------------------------
-    function el(tag, className, text) {
-      const node = document.createElement(tag);
-      if (className) node.className = className;
-      if (text != null) node.textContent = text;
-      return node;
-    }
-
+    // --- Leaderboard rendering -------------------------------------------------
     function characterCell(row) {
       const td = el("td");
       const who = el("div", "who");
@@ -229,49 +370,109 @@
       return n != null ? n.toLocaleString() : "–";
     }
 
-    // The PvE deaths count; clicking it opens the breakdown row underneath.
-    function pveCell(row, detail) {
+    // --- Killing blows ---------------------------------------------------------
+    // The column shows the grand total by default. The picker above the table switches it
+    // to any single counter (e.g. battleground killing blows), and sorting follows.
+    function kbValue(r) {
+      if (kbStat === "total") return r.killingBlows ?? null;
+      const parts = r.killingBlowBreakdown || [];
+      if (r.killingBlows == null && parts.length === 0) return null; // nothing loaded for this character
+      const hit = parts.find((b) => b.name === kbStat);
+      return hit ? hit.quantity : 0; // a counter that isn't listed is zero
+    }
+
+    // Every killing blow counter any character has, biggest overall first.
+    function kbNames() {
+      const totals = new Map();
+      for (const r of rows || []) {
+        for (const b of r.killingBlowBreakdown || []) totals.set(b.name, (totals.get(b.name) || 0) + b.quantity);
+      }
+      return [...totals].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([name]) => name);
+    }
+
+    function syncKbPicker() {
+      const names = kbNames();
+      const select = $("kb-stat");
+      $("kb-picker").hidden = names.length === 0;
+      if (kbStat !== "total" && !names.includes(kbStat)) kbStat = "total";
+      // Rebuild only when the list changed, so an open dropdown isn't disturbed by a re-sort.
+      const wanted = ["total", ...names].join("\u0000");
+      if (select.dataset.options !== wanted) {
+        select.replaceChildren();
+        for (const value of ["total", ...names]) {
+          const option = el("option", null, value === "total" ? "Total" : value);
+          option.value = value;
+          select.append(option);
+        }
+        select.dataset.options = wanted;
+      }
+      select.value = kbStat;
+    }
+
+    $("kb-stat").addEventListener("change", (e) => {
+      if (!rows) return;
+      kbStat = e.target.value;
+      sort = { key: "killingBlows", dir: "desc" };
+      render();
+    });
+
+    // --- Detail row ------------------------------------------------------------
+    // One hidden row per character holds both breakdowns (killing blows and PvE deaths).
+    // Either number in the table opens it, and the numbers' arrows stay in step.
+    const hasDetail = (row) =>
+      (row.killingBlowBreakdown && row.killingBlowBreakdown.length > 0) ||
+      (row.deathBreakdown && row.deathBreakdown.length > 0);
+
+    function detailRow(row) {
+      const tr = el("tr", "breakdown");
+      tr.hidden = true;
+      const td = el("td");
+      td.colSpan = COLS;
+      const sections = [
+        [row.killingBlowBreakdown, "Killing blow counters (the total may already include some of these)"],
+        [row.deathBreakdown, "PvE death counters (some overlap, e.g. dungeon deaths are also counted in wider totals)"],
+      ];
+      for (const [items, note] of sections) {
+        if (!items || items.length === 0) continue;
+        td.append(el("div", "note", note));
+        const list = el("ul", "chips");
+        for (const d of items) list.append(el("li", null, `${d.name}: ${d.quantity.toLocaleString()}`));
+        td.append(list);
+      }
+      tr.append(td);
+      return tr;
+    }
+
+    // A count that opens the character's detail row when there is one.
+    function countCell(value, row, detail, buttons) {
       const td = el("td", "num");
-      if (row.pveDeaths == null) {
+      if (value == null) {
         td.textContent = "–";
         return td;
       }
       if (!detail) {
-        td.textContent = row.pveDeaths.toLocaleString();
+        td.textContent = value.toLocaleString();
         return td;
       }
       const key = nameOf(row).toLowerCase();
       detail.hidden = !expanded.has(key);
-      const btn = el("button", "toggle", row.pveDeaths.toLocaleString() + " ▾");
+      const btn = el("button", "toggle", value.toLocaleString() + " ▾");
       btn.type = "button";
       btn.setAttribute("aria-expanded", String(!detail.hidden));
+      buttons.push(btn);
       btn.addEventListener("click", () => {
         detail.hidden = !detail.hidden;
         if (detail.hidden) expanded.delete(key);
         else expanded.add(key);
-        btn.setAttribute("aria-expanded", String(!detail.hidden));
+        for (const b of buttons) b.setAttribute("aria-expanded", String(!detail.hidden));
       });
       td.append(btn);
       return td;
     }
 
-    function breakdownRow(row) {
-      const tr = el("tr", "breakdown");
-      tr.hidden = true;
-      const td = el("td");
-      td.colSpan = 8;
-      td.append(el("div", "note", "PvE death counters (some overlap, e.g. dungeon deaths are also counted in wider totals)"));
-      const list = el("ul", "chips");
-      for (const d of row.deathBreakdown) {
-        list.append(el("li", null, `${d.name}: ${d.quantity.toLocaleString()}`));
-      }
-      td.append(list);
-      tr.append(td);
-      return tr;
-    }
-
     function render() {
-      const body = document.getElementById("rows");
+      syncKbPicker(); // first, so sorting uses a counter that still exists
+      const body = $("rows");
       body.replaceChildren();
       for (const row of sortedRows()) {
         const tr = el("tr");
@@ -281,30 +482,370 @@
         tr.append(el("td", "rank", ranked ? rank : "–"), characterCell(row));
         let detail = null;
         if (ranked) {
-          const hasBreakdown = row.deathBreakdown && row.deathBreakdown.length > 0;
-          detail = hasBreakdown ? breakdownRow(row) : null;
+          detail = hasDetail(row) ? detailRow(row) : null;
+          const buttons = [];
+          // A number only gets the toggle if it has a breakdown of its own to show.
+          const kbDetail = row.killingBlowBreakdown && row.killingBlowBreakdown.length > 0 ? detail : null;
+          const pveDetail = row.deathBreakdown && row.deathBreakdown.length > 0 ? detail : null;
           tr.append(
             el("td", "num", fmt(row.level)),
             el("td", "num", fmt(row.itemLevel)),
             el("td", "num hk", row.honorableKills.toLocaleString()),
             el("td", "num", fmt(row.pvpDeaths)),
             el("td", "num", ratio(row)),
-            pveCell(row, detail)
+            countCell(kbValue(row), row, kbDetail, buttons),
+            countCell(row.pveDeaths, row, pveDetail, buttons)
           );
         } else {
           const note = el("td", "num note", NOTES[row.status] || "");
-          note.colSpan = 6;
+          note.colSpan = 7;
           tr.append(note);
         }
         body.append(tr);
         if (detail) body.append(detail);
       }
       updateHeaders();
+      renderGuilds();
     }
 
+    // --- Guilds ----------------------------------------------------------------
+    // Everything here is worked out in the browser from the leaderboard rows, so it only
+    // ever covers the characters on this leaderboard.
+    const NO_GUILD = "No guild";
+    const GUILD_SORTS = {
+      guild: { value: (g) => g.name.toLowerCase(), first: "asc" },
+      members: { value: (g) => g.members.length, first: "desc" },
+      totalHk: { value: (g) => g.totalHk, first: "desc" },
+      avgHk: { value: (g) => g.avgHk, first: "desc" },
+      pvpDeaths: { value: (g) => g.pvpDeaths, first: "desc" },
+      ratio: { value: (g) => g.ratio, first: "desc" },
+      killingBlows: { value: (g) => g.killingBlows, first: "desc" },
+      pveDeaths: { value: (g) => g.pveDeaths, first: "desc" },
+      avgLevel: { value: (g) => g.avgLevel, first: "desc" },
+      avgItemLevel: { value: (g) => g.avgItemLevel, first: "desc" },
+    };
+    const GUILD_COLS = 10;
+    let gsort = { key: "totalHk", dir: "desc" };
+    const gExpanded = new Set();                      // guilds whose member list is open
+
+    // Sums and averages skip characters with no value, and give null when nobody has one.
+    const known = (list, f) => list.map(f).filter((x) => x != null);
+    const sumOf = (list, f) => { const v = known(list, f); return v.length ? v.reduce((a, b) => a + b, 0) : null; };
+    const meanOf = (list, f) => { const v = known(list, f); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+
+    function buildGuilds(all) {
+      const groups = new Map();
+      for (const r of all) {
+        if (r.status !== "ok") continue;
+        // Guild names are per faction, so the faction is part of the key. "No guild" is one group.
+        const key = r.guild ? `${r.faction || ""}|${r.guild}` : "none";
+        if (!groups.has(key)) {
+          groups.set(key, { key, name: r.guild || NO_GUILD, none: !r.guild, faction: r.guild ? r.faction : null, members: [] });
+        }
+        groups.get(key).members.push(r);
+      }
+      return [...groups.values()].map((g) => {
+        const totalHk = sumOf(g.members, (m) => m.honorableKills);
+        const pvpDeaths = sumOf(g.members, (m) => m.pvpDeaths);
+        return {
+          ...g,
+          totalHk,
+          avgHk: meanOf(g.members, (m) => m.honorableKills),
+          pvpDeaths,
+          ratio: totalHk != null && pvpDeaths > 0 ? totalHk / pvpDeaths : null,
+          killingBlows: sumOf(g.members, (m) => m.killingBlows),
+          pveDeaths: sumOf(g.members, (m) => m.pveDeaths),
+          avgLevel: meanOf(g.members, (m) => m.level),
+          avgItemLevel: meanOf(g.members, (m) => m.itemLevel),
+        };
+      });
+    }
+
+    function sortedGuilds(groups) {
+      const { value } = GUILD_SORTS[gsort.key];
+      const sign = gsort.dir === "asc" ? 1 : -1;
+      const named = groups.filter((g) => !g.none).sort((a, b) => {
+        const av = value(a);
+        const bv = value(b);
+        if (av == null && bv == null) return a.name.localeCompare(b.name);
+        if (av == null) return 1; // missing values go last in either direction
+        if (bv == null) return -1;
+        const cmp = typeof av === "string" ? av.localeCompare(bv) : av - bv;
+        return cmp !== 0 ? sign * cmp : a.name.localeCompare(b.name);
+      });
+      return [...named, ...groups.filter((g) => g.none)]; // "No guild" always stays at the bottom
+    }
+
+    const round0 = (n) => (n != null ? Math.round(n).toLocaleString() : "–");
+    const round1 = (n) => (n != null ? n.toFixed(1) : "–");
+
+    function memberList(g) {
+      const tr = el("tr", "members");
+      tr.hidden = !gExpanded.has(g.key);
+      const td = el("td");
+      td.colSpan = GUILD_COLS;
+      const list = el("ul", "member-list");
+      for (const m of [...g.members].sort(tiebreak)) {
+        const li = el("li");
+        li.append(el("strong", null, nameOf(m)), " ");
+        if (m.className) {
+          const cls = el("span", null, m.className);
+          cls.style.color = CLASS_COLORS[m.className] || "inherit";
+          li.append(cls, " ");
+        }
+        const bits = [
+          m.level != null ? `Lvl ${m.level}` : null,
+          `${m.honorableKills.toLocaleString()} HK`,
+          m.killingBlows != null ? `${m.killingBlows.toLocaleString()} KB` : null,
+          m.pvpDeaths != null ? `${m.pvpDeaths.toLocaleString()} PvP deaths` : null,
+        ].filter(Boolean);
+        li.append(el("span", "stat", bits.join(" · ")));
+        list.append(li);
+      }
+      td.append(list);
+      tr.append(td);
+      return tr;
+    }
+
+    function renderGuilds() {
+      const body = $("guild-rows");
+      const status = $("guild-status");
+      body.replaceChildren();
+      if (!rows) return;
+      const groups = buildGuilds(rows);
+      status.textContent = groups.length === 0 ? "No guilds to show yet." : "";
+
+      for (const g of sortedGuilds(groups)) {
+        const tr = el("tr");
+        const who = el("div", "who");
+        who.append(el("span", "faction" + (g.faction ? " " + g.faction : "")), document.createTextNode(g.name));
+        const nameCell = el("td");
+        nameCell.append(who);
+
+        const detail = memberList(g);
+        const btn = el("button", "toggle", `${g.members.length} ▾`);
+        btn.type = "button";
+        btn.setAttribute("aria-expanded", String(!detail.hidden));
+        btn.addEventListener("click", () => {
+          detail.hidden = !detail.hidden;
+          if (detail.hidden) gExpanded.delete(g.key);
+          else gExpanded.add(g.key);
+          btn.setAttribute("aria-expanded", String(!detail.hidden));
+        });
+        const membersCell = el("td", "num");
+        membersCell.append(btn);
+
+        tr.append(
+          nameCell,
+          membersCell,
+          el("td", "num hk", g.totalHk != null ? g.totalHk.toLocaleString() : "–"),
+          el("td", "num", round0(g.avgHk)),
+          el("td", "num", fmt(g.pvpDeaths)),
+          el("td", "num", round1(g.ratio)),
+          el("td", "num", fmt(g.killingBlows)),
+          el("td", "num", fmt(g.pveDeaths)),
+          el("td", "num", round1(g.avgLevel)),
+          el("td", "num", round0(g.avgItemLevel))
+        );
+        body.append(tr, detail);
+      }
+
+      for (const th of document.querySelectorAll("th[data-gkey]")) {
+        th.setAttribute(
+          "aria-sort",
+          th.dataset.gkey === gsort.key ? (gsort.dir === "asc" ? "ascending" : "descending") : "none"
+        );
+      }
+    }
+
+    for (const th of document.querySelectorAll("th[data-gkey]")) {
+      th.querySelector("button").addEventListener("click", () => {
+        const key = th.dataset.gkey;
+        gsort = key === gsort.key
+          ? { key, dir: gsort.dir === "asc" ? "desc" : "asc" }
+          : { key, dir: GUILD_SORTS[key].first };
+        renderGuilds();
+      });
+    }
+
+    // --- Tabs ------------------------------------------------------------------
+    const PANELS = { board: "panel-board", guilds: "panel-guilds", log: "panel-log" };
+    const TAB_HASHES = { guilds: "#guilds", log: "#changelog" };
+
+    function switchTab(name) {
+      for (const tab of document.querySelectorAll(".tab")) {
+        tab.setAttribute("aria-selected", String(tab.dataset.tab === name));
+      }
+      for (const [key, id] of Object.entries(PANELS)) $(id).hidden = key !== name;
+      try {
+        history.replaceState(null, "", TAB_HASHES[name] || location.pathname + location.search);
+      } catch {
+        // some embedded browsers block this; the tab still works
+      }
+      if (name === "log") loadChangelog();
+    }
+
+    for (const tab of document.querySelectorAll(".tab")) {
+      tab.addEventListener("click", () => switchTab(tab.dataset.tab));
+    }
+
+    // --- Changelog -------------------------------------------------------------
+    const CATEGORY_LABELS = { character: "Character", pvp: "PvP", pve: "PvE" };
+    let events = [];
+    const activeCategories = new Set(["character", "pvp", "pve"]);
+
+    const signed = (n) => (n > 0 ? "+" : "−") + Math.abs(n).toLocaleString();
+    const arrow = (a, b) => `${a.toLocaleString()} → ${b.toLocaleString()}`;
+
+    function describe(ev) {
+      const delta = ev.to - ev.from;
+      switch (ev.kind) {
+        case "level": return `reached level ${ev.to} (was ${ev.from})`;
+        case "itemLevel": return `item level ${arrow(ev.from, ev.to)}`;
+        case "guild":
+          if (!ev.from) return `joined ${ev.to}`;
+          if (!ev.to) return `left ${ev.from}`;
+          return `moved from ${ev.from} to ${ev.to}`;
+        case "honorableKills": return `${signed(delta)} honorable kills (${arrow(ev.from, ev.to)})`;
+        case "pvpDeaths": return `${signed(delta)} PvP deaths (${arrow(ev.from, ev.to)})`;
+        case "killingBlows": return `${signed(delta)} killing blows (${arrow(ev.from, ev.to)})`;
+        case "pveDeaths": return `${signed(delta)} PvE deaths (${arrow(ev.from, ev.to)})`;
+        case "deathDetail": return `${ev.label}: ${arrow(ev.from, ev.to)}`;
+        default: return `${ev.label}: ${ev.from} → ${ev.to}`;
+      }
+    }
+
+    const sameDay = (a, b) => a.toDateString() === b.toDateString();
+
+    function dayLabel(date) {
+      const today = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(today.getDate() - 1);
+      if (sameDay(date, today)) return "Today";
+      if (sameDay(date, yesterday)) return "Yesterday";
+      return date.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+    }
+
+    function renderLog() {
+      // Chip labels show how many changes each category has.
+      const counts = { character: 0, pvp: 0, pve: 0 };
+      for (const ev of events) if (ev.category in counts) counts[ev.category] += 1;
+      for (const chip of document.querySelectorAll(".filter")) {
+        const cat = chip.dataset.cat;
+        chip.textContent = `${CATEGORY_LABELS[cat]} · ${counts[cat]}`;
+        chip.setAttribute("aria-pressed", String(activeCategories.has(cat)));
+      }
+
+      const list = $("log-list");
+      const status = $("log-status");
+      list.replaceChildren();
+
+      const shown = events
+        .filter((ev) => activeCategories.has(ev.category))
+        .sort((a, b) => new Date(b.t) - new Date(a.t)); // stable: newest first
+
+      if (events.length === 0) {
+        status.textContent = "No changes recorded yet. They appear here once a character's numbers change between refreshes.";
+        return;
+      }
+      if (shown.length === 0) {
+        status.textContent = activeCategories.size === 0
+          ? "Turn on at least one category above."
+          : "Nothing in the selected categories yet.";
+        return;
+      }
+      status.textContent = "";
+
+      let currentDay = null;
+      let ol = null;
+      for (const ev of shown) {
+        const when = new Date(ev.t);
+        const label = dayLabel(when);
+        if (label !== currentDay) {
+          currentDay = label;
+          list.append(el("h3", "day", label));
+          ol = el("ol", "log");
+          list.append(ol);
+        }
+        const li = el("li");
+        // The plain spaces don't change the layout (flex ignores them) but keep the text
+        // readable for screen readers and copy-paste.
+        li.append(
+          el("span", "time", when.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })),
+          " ",
+          el("span", "pill " + ev.category, CATEGORY_LABELS[ev.category] || ev.category),
+          " ",
+          el("span", "name", `${ev.name} ${ev.surname}`),
+          " ",
+          el("span", "what", describe(ev))
+        );
+        ol.append(li);
+      }
+    }
+
+    for (const chip of document.querySelectorAll(".filter")) {
+      chip.addEventListener("click", () => {
+        const cat = chip.dataset.cat;
+        if (activeCategories.has(cat)) activeCategories.delete(cat);
+        else activeCategories.add(cat);
+        renderLog();
+      });
+    }
+
+    async function loadChangelog() {
+      const status = $("log-status");
+      status.textContent = "Loading…";
+      try {
+        const res = await fetch("/api/changelog");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Request failed");
+        events = data.events || [];
+        renderLog();
+      } catch (err) {
+        $("log-list").replaceChildren();
+        status.textContent = "Couldn't load the changelog: " + err.message;
+      }
+    }
+
+    // --- Adding a character ----------------------------------------------------
+    $("add-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = e.currentTarget;
+      const msg = $("add-msg");
+      const button = form.querySelector("button");
+      button.disabled = true;
+      msg.className = "note";
+      msg.textContent = "Checking with Blizzard…";
+      try {
+        const res = await fetch("/api/characters", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(Object.fromEntries(new FormData(form))),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Couldn't add that character.");
+
+        // Show it straight away. Everyone else sees it within about a minute.
+        rows = (rows || []).filter((r) => nameOf(r).toLowerCase() !== nameOf(data.row).toLowerCase());
+        rows.push(data.row);
+        ranks = computeRanks(rows);
+        render();
+        form.elements.name.value = "";
+        form.elements.surname.value = "";
+        msg.className = "ok";
+        msg.textContent = `Added ${nameOf(data.row)}.`;
+      } catch (err) {
+        msg.className = "error";
+        msg.textContent = err.message;
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    // --- Loading ---------------------------------------------------------------
     async function load() {
-      const body = document.getElementById("rows");
-      const status = document.getElementById("status");
+      const body = $("rows");
+      const status = $("status");
       try {
         const res = await fetch("/api/leaderboard");
         const data = await res.json();
@@ -316,11 +857,16 @@
         status.textContent =
           "Updated " + new Date(data.updatedAt).toLocaleString() +
           (data.stale ? " · Blizzard isn't responding right now, so this is the last good data" : "");
+
+        $("add").hidden = !data.canAdd;
+        $("tab-log").hidden = !data.hasHistory;
+        if (data.hasHistory && location.hash === "#changelog") switchTab("log");
+        else if (location.hash === "#guilds") switchTab("guilds");
       } catch (err) {
         body.replaceChildren();
         const tr = el("tr");
         const td = el("td", "note", "Couldn't load the leaderboard: " + err.message);
-        td.colSpan = 8;
+        td.colSpan = COLS;
         tr.append(td);
         body.append(tr);
       }
