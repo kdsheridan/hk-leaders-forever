@@ -34,6 +34,9 @@ Honorable kills leaderboard for a list of WoW Forever characters, hosted on Verc
 
 - **Killing blows** come from each character's achievement statistics (`/achievements/statistics`). I haven't confirmed the exact ids or names Forever uses, so they're found by name: any counter called "...killing blow(s)...", or anything inside a category with that name. The column shows the total. The picker above the table switches it to any single counter (battleground, arena and so on) and sorts by it, and clicking the number lists every counter. A character with no killing blow data shows a dash.
 - If the column stays empty, run `npm run probe` to print what Blizzard returns for killing blows. `npm run probe -- death Ren Wix` searches any word for any character.
+- **PvP vs PvE killing blows.** Counters named battleground, arena, player or PvP count as PvP (an aggregate such as "Battleground Killing Blows" is used instead of adding each battleground to it, so nothing is counted twice). PvE is the total minus the PvP part, so it also includes world kills. The picker has "PvP" and "PvE" entries, and the Guilds tab has a column for each. If the PvP number looks wrong, run `npm run probe -- "kill|blow"` and send me the counter names.
+- **Gold tab** shows lifetime "Total gold acquired" from the same statistics, plus the other gold counters when you click the number. It is not the current balance: Blizzard only gives that to the player after they log in. Values are assumed to be in copper like other WoW money; run `npm run probe -- gold` to confirm.
+- **PvE deaths** are total deaths minus deaths from other players. The itemised counters (dungeons, drowning, falling...) never add up to that, so the breakdown ends with an "Other / not itemised" line for the rest. The 5-player dungeon counter is part of the raid and dungeon counter, so only one of them is listed.
 - **Guilds tab** is worked out in the browser from the leaderboard rows, so it only covers characters on the board. Per guild it shows members, total and average HK, PvP deaths, HK per death (total HK divided by total PvP deaths), killing blows, PvE deaths, and average level and item level. Click a member count to see who is in the guild. Characters without a guild are grouped under "No guild", which always stays at the bottom.
 
 ## Rate limiting and caching
@@ -64,7 +67,7 @@ To try it locally, copy those variables into `.env.local` and run `npm run dev`.
 | Filter | What is logged |
 | :- | :- |
 | Character | level, item level, guild (joined / left / moved) |
-| PvP | honorable kills, PvP deaths, killing blows |
+| PvP | honorable kills, PvP deaths, PvP killing blows |
 | PvE | PvE deaths, and each counter in the death breakdown |
 
 Good to know: a character's first sighting only saves a baseline, so nothing is logged for it. History only builds up while the site is being visited, and times are when the site noticed a change, so changes made while nobody was looking show up together. A failed Blizzard call never creates a fake change.
