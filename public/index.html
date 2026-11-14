@@ -64,6 +64,7 @@
     .rank { width: 48px; color: var(--muted); }
     tr.first .rank, tr.first .hk { color: var(--gold); }
     .hk { font-size: 1.1rem; }
+    .nosplit .split { display: none; }
     .who { font-size: 1.05rem; }
     .who .faction { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: var(--muted); }
     .who .faction.ALLIANCE { background: var(--alliance); }
@@ -151,7 +152,6 @@
     <div class="tabs" role="tablist">
       <button type="button" class="tab" role="tab" id="tab-board" data-tab="board" aria-controls="panel-board" aria-selected="true">Leaderboard</button>
       <button type="button" class="tab" role="tab" id="tab-guilds" data-tab="guilds" aria-controls="panel-guilds" aria-selected="false">Guilds</button>
-      <button type="button" class="tab" role="tab" id="tab-gold" data-tab="gold" aria-controls="panel-gold" aria-selected="false">Gold</button>
       <button type="button" class="tab" role="tab" id="tab-log" data-tab="log" aria-controls="panel-log" aria-selected="false" hidden>Changelog</button>
     </div>
 
@@ -205,36 +205,19 @@
               <th class="num" data-gkey="avgHk" aria-sort="none"><button type="button" class="sort">Avg HK</button></th>
               <th class="num" data-gkey="pvpDeaths" aria-sort="none"><button type="button" class="sort">PvP deaths</button></th>
               <th class="num" data-gkey="ratio" aria-sort="none"><button type="button" class="sort">HK / death</button></th>
-              <th class="num" data-gkey="killingBlowsPvp" aria-sort="none"><button type="button" class="sort">PvP KB</button></th>
-              <th class="num" data-gkey="killingBlowsPve" aria-sort="none"><button type="button" class="sort">PvE KB</button></th>
+              <th class="num" data-gkey="killingBlows" aria-sort="none"><button type="button" class="sort">Killing blows</button></th>
+              <th class="num split" data-gkey="killingBlowsPvp" aria-sort="none"><button type="button" class="sort">PvP KB</button></th>
+              <th class="num split" data-gkey="killingBlowsPve" aria-sort="none"><button type="button" class="sort">PvE KB</button></th>
               <th class="num" data-gkey="pveDeaths" aria-sort="none"><button type="button" class="sort">PvE deaths</button></th>
               <th class="num" data-gkey="avgLevel" aria-sort="none"><button type="button" class="sort">Avg lvl</button></th>
               <th class="num" data-gkey="avgItemLevel" aria-sort="none"><button type="button" class="sort">Avg iLvl</button></th>
             </tr>
           </thead>
-          <tbody id="guild-rows"><tr><td colspan="11" class="note">Loading…</td></tr></tbody>
+          <tbody id="guild-rows"><tr><td colspan="12" class="note">Loading…</td></tr></tbody>
         </table>
       </div>
       <p id="guild-status" class="note" role="status"></p>
       <p class="note">Only characters on the leaderboard that have data are counted. Characters without a guild are grouped under "No guild".</p>
-    </section>
-
-    <section id="panel-gold" role="tabpanel" aria-labelledby="tab-gold" hidden>
-      <p class="note" style="margin-top:0">Total gold each character has acquired over their lifetime, from the public statistics. This is not their current balance, which Blizzard only shows to the player. Click a column to sort, or a number to see the other gold counters.</p>
-      <div class="wrap">
-        <table>
-          <thead>
-            <tr>
-              <th class="rank">#</th>
-              <th data-akey="character" aria-sort="none"><button type="button" class="sort">Character</button></th>
-              <th class="num" data-akey="level" aria-sort="none"><button type="button" class="sort">Lvl</button></th>
-              <th class="num" data-akey="gold" aria-sort="descending"><button type="button" class="sort">Gold acquired</button></th>
-            </tr>
-          </thead>
-          <tbody id="gold-rows"><tr><td colspan="4" class="note">Loading…</td></tr></tbody>
-        </table>
-      </div>
-      <p id="gold-status" class="note" role="status"></p>
     </section>
 
     <section id="panel-log" role="tabpanel" aria-labelledby="tab-log" hidden>
@@ -461,7 +444,7 @@
         : "";
       const sections = [
         [kbs.filter((b) => b.kind === "pvp"), "PvP killing blow counters" + kbSummary],
-        [kbs.filter((b) => b.kind !== "pvp"), "Other killing blow counters (PvE = total minus PvP)"],
+        [kbs.filter((b) => b.kind !== "pvp"), row.killingBlowsPvp != null ? "Other killing blow counters (PvE = total minus PvP)" : "Killing blow counters (Blizzard has no PvP killing blow counter to split these by)"],
         [row.deathBreakdown, "PvE death counters (total deaths minus deaths from players; the last line is whatever Blizzard doesn't itemise)"],
       ];
       for (const [items, note] of sections) {
@@ -538,7 +521,6 @@
       }
       updateHeaders();
       renderGuilds();
-      renderGold();
     }
 
     // --- Guilds ----------------------------------------------------------------
@@ -552,13 +534,15 @@
       avgHk: { value: (g) => g.avgHk, first: "desc" },
       pvpDeaths: { value: (g) => g.pvpDeaths, first: "desc" },
       ratio: { value: (g) => g.ratio, first: "desc" },
+      killingBlows: { value: (g) => g.killingBlows, first: "desc" },
       killingBlowsPvp: { value: (g) => g.killingBlowsPvp, first: "desc" },
       killingBlowsPve: { value: (g) => g.killingBlowsPve, first: "desc" },
       pveDeaths: { value: (g) => g.pveDeaths, first: "desc" },
       avgLevel: { value: (g) => g.avgLevel, first: "desc" },
       avgItemLevel: { value: (g) => g.avgItemLevel, first: "desc" },
     };
-    const GUILD_COLS = 11;
+    const GUILD_COLS = 12;
+    const guildTable = document.querySelector("#panel-guilds table");
     let gsort = { key: "totalHk", dir: "desc" };
     const gExpanded = new Set();                      // guilds whose member list is open
 
@@ -587,6 +571,7 @@
           avgHk: meanOf(g.members, (m) => m.honorableKills),
           pvpDeaths,
           ratio: totalHk != null && pvpDeaths > 0 ? totalHk / pvpDeaths : null,
+          killingBlows: sumOf(g.members, (m) => m.killingBlows),
           killingBlowsPvp: sumOf(g.members, (m) => m.killingBlowsPvp),
           killingBlowsPve: sumOf(g.members, (m) => m.killingBlowsPve),
           pveDeaths: sumOf(g.members, (m) => m.pveDeaths),
@@ -631,8 +616,9 @@
         const bits = [
           m.level != null ? `Lvl ${m.level}` : null,
           `${m.honorableKills.toLocaleString()} HK`,
-          m.killingBlowsPvp != null ? `${m.killingBlowsPvp.toLocaleString()} PvP KB` : null,
-          m.killingBlowsPve != null ? `${m.killingBlowsPve.toLocaleString()} PvE KB` : null,
+          m.killingBlows != null ? `${m.killingBlows.toLocaleString()} KB` : null,
+          m.killingBlowsPvp != null ? `${m.killingBlowsPvp.toLocaleString()} PvP` : null,
+          m.killingBlowsPve != null ? `${m.killingBlowsPve.toLocaleString()} PvE` : null,
           m.pvpDeaths != null ? `${m.pvpDeaths.toLocaleString()} PvP deaths` : null,
         ].filter(Boolean);
         li.append(el("span", "stat", bits.join(" · ")));
@@ -649,6 +635,7 @@
       body.replaceChildren();
       if (!rows) return;
       const groups = buildGuilds(rows);
+      guildTable.classList.toggle("nosplit", !rows.some((r) => r.killingBlowsPvp != null));
       status.textContent = groups.length === 0 ? "No guilds to show yet." : "";
 
       for (const g of sortedGuilds(groups)) {
@@ -678,8 +665,9 @@
           el("td", "num", round0(g.avgHk)),
           el("td", "num", fmt(g.pvpDeaths)),
           el("td", "num", round1(g.ratio)),
-          el("td", "num", fmt(g.killingBlowsPvp)),
-          el("td", "num", fmt(g.killingBlowsPve)),
+          el("td", "num", fmt(g.killingBlows)),
+          el("td", "num split", fmt(g.killingBlowsPvp)),
+          el("td", "num split", fmt(g.killingBlowsPve)),
           el("td", "num", fmt(g.pveDeaths)),
           el("td", "num", round1(g.avgLevel)),
           el("td", "num", round0(g.avgItemLevel))
@@ -705,109 +693,9 @@
       });
     }
 
-    // --- Gold ------------------------------------------------------------------
-    // Lifetime "gold acquired" counters from the public statistics (copper). The current
-    // balance isn't public, so it isn't shown.
-    function fmtMoney(copper, withCopper) {
-      const g = Math.floor(copper / 10000);
-      const sv = Math.floor((copper % 10000) / 100);
-      const c = Math.floor(copper % 100);
-      return `${g.toLocaleString()}g ${sv}s` + (withCopper ? ` ${c}c` : "");
-    }
-    const ASORTS = {
-      character: { value: (r) => nameOf(r).toLowerCase(), first: "asc" },
-      level: { value: (r) => r.level, first: "desc" },
-      gold: { value: (r) => r.goldAcquired, first: "desc" },
-    };
-    let asort = { key: "gold", dir: "desc" };
-    const aExpanded = new Set();
-
-    function renderGold() {
-      const body = $("gold-rows");
-      const status = $("gold-status");
-      body.replaceChildren();
-      if (!rows) return;
-      const shown = rows.filter((r) => r.status === "ok");
-      const { value } = ASORTS[asort.key];
-      const sign = asort.dir === "asc" ? 1 : -1;
-      shown.sort((a, b) => {
-        const av = value(a);
-        const bv = value(b);
-        if (av == null && bv == null) return nameOf(a).localeCompare(nameOf(b));
-        if (av == null) return 1;
-        if (bv == null) return -1;
-        const cmp = typeof av === "string" ? av.localeCompare(bv) : av - bv;
-        return cmp !== 0 ? sign * cmp : nameOf(a).localeCompare(nameOf(b));
-      });
-      const withGold = shown.filter((r) => r.goldAcquired != null).sort((a, b) => b.goldAcquired - a.goldAcquired);
-      const goldRank = new Map();
-      withGold.forEach((r, i) => {
-        const prev = withGold[i - 1];
-        goldRank.set(r, prev && prev.goldAcquired === r.goldAcquired ? goldRank.get(prev) : i + 1);
-      });
-      const total = withGold.reduce((sum, r) => sum + r.goldAcquired, 0);
-      status.textContent = shown.length === 0
-        ? "No characters to show yet."
-        : withGold.length === 0
-          ? "Blizzard didn't return a gold counter for these characters."
-          : `Combined: ${fmtMoney(total)} acquired by ${withGold.length} character${withGold.length === 1 ? "" : "s"}.`;
-
-      for (const row of shown) {
-        const tr = el("tr");
-        tr.append(el("td", "rank", goldRank.has(row) ? goldRank.get(row) : "–"), characterCell(row), el("td", "num", fmt(row.level)));
-        const td = el("td", "num hk");
-        const parts = row.goldBreakdown || [];
-        if (row.goldAcquired == null) {
-          td.textContent = "–";
-          tr.append(td);
-          body.append(tr);
-          continue;
-        }
-        if (parts.length === 0) {
-          td.textContent = fmtMoney(row.goldAcquired);
-          tr.append(td);
-          body.append(tr);
-          continue;
-        }
-        const key = nameOf(row).toLowerCase();
-        const detail = el("tr", "breakdown");
-        detail.hidden = !aExpanded.has(key);
-        const dtd = el("td");
-        dtd.colSpan = 4;
-        dtd.append(el("div", "note", "Other gold counters (some overlap the total)"));
-        const list = el("ul", "chips");
-        for (const d of parts) list.append(el("li", null, `${d.name}: ${fmtMoney(d.quantity, true)}`));
-        dtd.append(list);
-        detail.append(dtd);
-        const btn = el("button", "toggle", fmtMoney(row.goldAcquired) + " ▾");
-        btn.type = "button";
-        btn.setAttribute("aria-expanded", String(!detail.hidden));
-        btn.addEventListener("click", () => {
-          detail.hidden = !detail.hidden;
-          if (detail.hidden) aExpanded.delete(key);
-          else aExpanded.add(key);
-          btn.setAttribute("aria-expanded", String(!detail.hidden));
-        });
-        td.append(btn);
-        tr.append(td);
-        body.append(tr, detail);
-      }
-      for (const th of document.querySelectorAll("th[data-akey]")) {
-        th.setAttribute("aria-sort", th.dataset.akey === asort.key ? (asort.dir === "asc" ? "ascending" : "descending") : "none");
-      }
-    }
-
-    for (const th of document.querySelectorAll("th[data-akey]")) {
-      th.querySelector("button").addEventListener("click", () => {
-        const key = th.dataset.akey;
-        asort = key === asort.key ? { key, dir: asort.dir === "asc" ? "desc" : "asc" } : { key, dir: ASORTS[key].first };
-        renderGold();
-      });
-    }
-
     // --- Tabs ------------------------------------------------------------------
-    const PANELS = { board: "panel-board", guilds: "panel-guilds", gold: "panel-gold", log: "panel-log" };
-    const TAB_HASHES = { guilds: "#guilds", gold: "#gold", log: "#changelog" };
+    const PANELS = { board: "panel-board", guilds: "panel-guilds", log: "panel-log" };
+    const TAB_HASHES = { guilds: "#guilds", log: "#changelog" };
 
     function switchTab(name) {
       for (const tab of document.querySelectorAll(".tab")) {
@@ -1001,7 +889,6 @@
         $("tab-log").hidden = !data.hasHistory;
         if (data.hasHistory && location.hash === "#changelog") switchTab("log");
         else if (location.hash === "#guilds") switchTab("guilds");
-        else if (location.hash === "#gold") switchTab("gold");
       } catch (err) {
         body.replaceChildren();
         const tr = el("tr");
